@@ -1,0 +1,53 @@
+
+###################################################################################################
+################################ Loading necessary libraries ###################################### 
+
+#This package introduces new tools for the visualization of missing and/or imputed values
+library(VIM) 
+#The R package 'ggplot2' is a plotting system based on the grammar of graphics. 'GGally' extends 'ggplot2' by adding several functions to reduce the complexity of combining geometric objects with transformed data
+library(ggplot2)
+library(GGally)
+#RMySQL is a database interface and MySQL driver for R
+library(RMySQL)
+
+###################################################################################################
+###################################################################################################
+
+#Reading the dataset and summarising the columns present in it
+movie = read.csv("movie_metadata.csv")
+head(movie)
+summary(movie)
+str(movie)
+
+#Using Aggr funciton to visualise the summary for each of the columns present in the data set - especially to visualise the NULL values in our dataset.
+
+aggr(movie, cex.axis=0.5)
+aggr(movie,combined = TRUE, numbers=TRUE, cex.numbers=0.5)
+
+
+
+##Calculating the number of null values in each column of the data set
+
+for (i in colnames(movie)){
+  print(paste(i,":",sum(is.na(movie[i]))))
+}
+
+
+for (i in colnames(movie)){
+  print(paste(i,":",length(movie[movie[i]==""])))
+}
+
+
+## Finding the number of movies in 'English'
+length(movie[movie$language=="English","language"])
+
+
+
+## Finding out how many '0's are present in the 'facebook_likes' columns as '0' suggests unreasonable facts in our real-world media setting
+
+length(movie[movie$director_facebook_likes<=0,"director_facebook_likes"])
+length(movie[movie$actor_1_facebook_likes<=0,"actor_1_facebook_likes"])
+length(movie[movie$actor_2_facebook_likes<=0,"actor_2_facebook_likes"])
+length(movie[movie$actor_3_facebook_likes<=0,"actor_3_facebook_likes"])
+
+

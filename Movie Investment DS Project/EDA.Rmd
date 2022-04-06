@@ -1,0 +1,108 @@
+---
+title: "movie.dataunderstanding2"
+author: "Jingnan Wang"
+date: "2021/10/5"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+movie = read.csv("cleaned_data_v2.csv")
+movie
+```
+To analyze the potential effect of multicolinearity in the dataset, we choose to construct a correlation matrix including all the numerical variables in the dataset (all variables except content rating and color) and then visualize with a correlation plot.
+
+```{r}
+##correlation matrix
+use<-movie[ -c(4:5) ]
+cor_matrix = cor(use, method = "pearson", use = "complete.obs")
+
+library(corrplot)
+```
+
+Since we have 39 variables which is hard to visualize in a single plot, we chose to only select variable pairs whose correlations are over 0.5. Then we construct a correlation plot.
+
+```{r}
+##finding correlations over 0.5 and plot the correlation matrix
+refinedcorr <- function(data=use,sig=0.5){
+  df_cor<-cor(use)
+  corr <- cor(df_cor)
+  corr[lower.tri(corr,diag=TRUE)] <- NA 
+  corr[corr == 1] <- NA 
+  corr <- as.data.frame(as.table(corr))
+  corr <- subset(corr, abs(Freq) > sig) 
+  corr <- corr[order(-abs(corr$Freq)),] 
+  print(corr)
+  corr1 <- reshape2::acast(corr, Var1~Var2, value.var="Freq")
+  corrplot(corr1, is.corr=FALSE, tl.col="black", na.label=" ")
+}
+refinedcorr()
+```
+
+From the result, we see some multicolinearity issues in our dataset which may further influence our modeling. For example, actor_1_facebook_likes and cast_facebook_likes, Family and Animation. Some high correlations indeed seem reasonable, and some do not. 
+
+Then we consider to look at the distribution for the profit in millions of dollars for our movies. We construct a historgram, and find the distribution to be right-skewed, suggesting certain movies have extremely high profit than other movies and act like outliers.
+
+```{r}
+##plot the histogram
+hist(movie$Profit/1000000,main="Histogram for Profit", 
+     xlab="million in dollars")
+mean(movie$Profit)
+median(movie$Profit)
+```
+
+When we choose the profit for a movie as the business metric to analyze, we use budget of the movie and its gross. We really want to find whether a highly budgeted movie will ensure a high return in profit. To analyze this question, we fit a scatter plot for the profit of the movie against its budget. 
+
+
+```{r}
+## scatter plot for the relationship between budget and profit
+budget_in_millions<-movie$budget_corrected/1000000
+profit_in_millions<-movie$Profit/1000000
+ggplot(movie, aes(budget_in_millions,profit_in_millions))+
+  geom_point(position = "jitter",alpha = 0.3,color = "blue",shape = ".")+
+  geom_smooth(color ="black")
+```
+
+From the scatter plot, we see a general and increasing trend that a movie's profit is positively related to its budget, suggesting that higher the cost of the movie will generate a higher profit.
+
+We are also interested to see the relationship between a movie's genre and its profit. Which movie genres will be likely to generate higher profit?
+To analyze this point, we calculated the average profit for movies in each genre and aim to compare the average profit in a barplot.
+
+
+```{r}
+##calculate the average profit for each genre's movies and fit a barplot of profit by genre
+
+fantasy<-sum(movie[movie$Fantasy>=1,"Profit"])/length(movie[movie$Fantasy>=1,"Fantasy"])
+
+horror<-sum(movie[movie$Horror>=1,"Profit"])/length(movie[movie$Horror>=1,"Horror"])
+crime<-sum(movie[movie$Crime>=1,"Profit"])/length(movie[movie$Crime>=1,"Crime"])
+history<-sum(movie[movie$History>=1,"Profit"])/length(movie[movie$History>=1,"History"])
+biography<-sum(movie[movie$Biography>=1,"Profit"])/length(movie[movie$Biography>=1,"Biography"])
+family<-sum(movie[movie$Family>=1,"Profit"])/length(movie[movie$Family>=1,"Family"])
+adventure<-sum(movie[movie$Adventure>=1,"Profit"])/length(movie[movie$Adventure>=1,"Adventure"])
+animation<-sum(movie[movie$Animation>=1,"Profit"])/length(movie[movie$Animation>=1,"Animation"])
+sport<-sum(movie[movie$Sport>=1,"Profit"])/length(movie[movie$Sport>=1,"Sport"])
+war<-sum(movie[movie$War>=1,"Profit"])/length(movie[movie$War>=1,"War"])
+musical<-sum(movie[movie$Musical>=1,"Profit"])/length(movie[movie$Musical>=1,"Musical"])
+drama<-sum(movie[movie$Drama>=1,"Profit"])/length(movie[movie$Drama>=1,"Drama"])
+music<-sum(movie[movie$Music>=1,"Profit"])/length(movie[movie$Music>=1,"Music"])
+action<-sum(movie[movie$Action>=1,"Profit"])/length(movie[movie$Action>=1,"Action"])
+romance<-sum(movie[movie$Romance>=1,"Profit"])/length(movie[movie$Romance>=1,"Romance"])
+western<-sum(movie[movie$Western>=1,"Profit"])/length(movie[movie$Western>=1,"Western"])
+documentary<-sum(movie[movie$Documentary>=1,"Profit"])/length(movie[movie$Documentary>=1,"Documentary"])
+mystery<-sum(movie[movie$Mystery>=1,"Profit"])/length(movie[movie$Mystery>=1,"Mystery"])
+sci_fi<-sum(movie[movie$Sci.Fi>=1,"Profit"])/length(movie[movie$Sci.Fi>=1,"Sci.Fi"])
+thriller<-sum(movie[movie$Thriller>=1,"Profit"])/length(movie[movie$Thriller>=1,"Thriller"])
+comedy<-sum(movie[movie$Comedy>=1,"Profit"])/length(movie[movie$Comedy>=1,"Comedy"])
+genre_others<-sum(movie[movie$Genre_Others>=1,"Profit"])/length(movie[movie$Genre_Others>=1,"Genre_Others"])
+
+averageprofit<-c(horror,fantasy,crime,history,biography,family,adventure,animation,sport,war,musical,drama,music,action,romance,western,documentary,mystery,sci_fi,thriller,comedy,genre_others)
+
+genre<-c("Fantasy","Horror","Crime","History","Biography","Family","Adventure","Animation","Sport","War","Musical","Drama","Music","Action","Romance","Western","Documentary","Mystery","Sci_fi","Thriller","Comedy","Genre_others")
+
+barplot(averageprofit,names.arg=genre,xlab="Genre",ylab="Profit",col="blue",width=0.05,cex.names=0.45,
+main="Bar plot for profit by genre",border="red")
+
+```
+
+From the barplot, we see that animation,adventure movies are among the genres which generated the highest profit, while documentary and sport movies generally generate lower profit.
